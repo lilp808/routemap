@@ -1,8 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { fetchPropertiesFromSheet } from "./googleSheetsService";
+import { 
+  fetchPropertiesFromSheet, 
+  addPropertyToSheet, 
+  upload, 
+  processExcelFile, 
+  processCsvFile 
+} from "./googleSheetsService";
 import { Property } from "../shared/schema";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all properties from Google Sheets
@@ -183,6 +190,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in webhook test:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Add a new property through the form submission
+  app.post('/api/properties', async (req, res) => {
+    try {
+      const propertyData = req.body;
+      
+      // Validate required fields
+      if (!propertyData.propertyId || !propertyData.landlordName) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      // Add the property to the Google Sheet
+      const result = await addPropertyToSheet(propertyData);
+      
+      res.status(201).json(result);
+    } catch (error) {
+      console.error('Error adding property:', error);
+      res.status(500).json({ error: 'Failed to add property to Google Sheets' });
+    }
+  });
+  
+  // Upload and process an Excel or CSV file
+  app.post('/api/upload-properties', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      
+      const filePath = req.file.path;
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      
+      let result;
+      
+      if (fileExt === '.csv') {
+        // Process CSV file
+        result = await processCsvFile(filePath);
+      } else if (fileExt === '.xlsx' || fileExt === '.xls') {
+        // Process Excel file
+        result = await processExcelFile(filePath);
+      } else {
+        // Clean up the invalid file
+        try {
+          require('fs').unlinkSync(filePath);
+        } catch (e) {
+          console.error('Error removing invalid file:', e);
+        }
+        return res.status(400).json({ error: 'Unsupported file format. Please upload a CSV or Excel file.' });
+      }
+      
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error processing uploaded file:', error);
+      res.status(500).json({ error: 'Failed to process the uploaded file' });
     }
   });
 
