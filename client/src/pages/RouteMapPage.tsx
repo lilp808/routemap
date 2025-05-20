@@ -73,12 +73,16 @@ const RouteMapPage: React.FC = () => {
         },
         (error) => {
           console.error("Error getting location:", error);
-        },
+          // Set a default location (Bangkok)
+          setUserLocation({ lat: 13.736717, lng: 100.523186 });
+        }
       );
+    } else {
+      console.error("Geolocation is not supported by this browser.");
+      // Set a default location (Bangkok)
+      setUserLocation({ lat: 13.736717, lng: 100.523186 });
     }
   }, []);
-
-  // Logout functionality is now handled by the MobileNavbar component
 
   const handleSubmit = async () => {
     if (!userLocation) {
@@ -173,19 +177,19 @@ const RouteMapPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Paln a Property to Visit
+              วางแผนเส้นทางเยี่ยมชมอสังหาริมทรัพย์
             </h2>
 
             {isLoadingProperties ? (
               <div className="flex justify-center items-center h-32">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                <span className="ml-3 text-gray-600">Loading Property...</span>
+                <span className="ml-3 text-gray-600">กำลังโหลดข้อมูล...</span>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Choose Property
+                    เลือกอสังหาริมทรัพย์
                   </label>
                   <PropertySelect
                     options={propertyOptions}
@@ -193,13 +197,13 @@ const RouteMapPage: React.FC = () => {
                     onChange={setSelectedProperties}
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    Multiple items can be selected and deleted.
+                    สามารถเลือกได้หลายรายการ
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Time
+                    เวลาเริ่มต้น
                   </label>
                   <input
                     type="time"
@@ -232,12 +236,12 @@ const RouteMapPage: React.FC = () => {
                 {isLoading ? (
                   <>
                     <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                    Calculating...
+                    กำลังคำนวณ...
                   </>
                 ) : (
                   <>
                     <MapPin size={18} />
-                    Calculate Route
+                    คำนวณเส้นทาง
                   </>
                 )}
               </button>
@@ -263,6 +267,7 @@ const RouteMapPage: React.FC = () => {
                     </label>
                   </div>
                 </div>
+                
                 <div className="h-[450px] md:h-[550px]">
                   <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
                     <GoogleMap
@@ -316,10 +321,13 @@ const RouteMapPage: React.FC = () => {
                       )}
                     </GoogleMap>
                   </LoadScript>
+                </div>
               </div>
             </div>
 
-            <RouteResults routeResponse={routeResponse} startTime={startTime} />
+            <div className="lg:col-span-1">
+              <RouteResults routeResponse={routeResponse} startTime={startTime} />
+            </div>
           </div>
         </div>
       </main>
