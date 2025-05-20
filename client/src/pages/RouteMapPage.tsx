@@ -29,6 +29,7 @@ const RouteMapPage: React.FC = () => {
     lat: number;
     lng: number;
   } | null>(null);
+  const [isPinDraggable, setIsPinDraggable] = useState(false);
   const [directions, setDirections] =
     useState<google.maps.DirectionsResult | null>(null);
   const [routeResponse, setRouteResponse] = useState<RouteResponse | null>(
@@ -245,48 +246,76 @@ const RouteMapPage: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden h-[500px] md:h-[600px]">
-                <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-                  <GoogleMap
-                    mapContainerStyle={{ width: "100%", height: "100%" }}
-                    center={userLocation || { lat: 13.7563, lng: 100.5018 }} // Bangkok as default
-                    zoom={11}
-                  >
-                    {userLocation && (
-                      <Marker
-                        position={userLocation}
-                        icon={{
-                          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                        }}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-700">แผนที่</h3>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input 
+                        type="checkbox"
+                        checked={isPinDraggable}
+                        onChange={() => setIsPinDraggable(!isPinDraggable)}
+                        className="rounded text-blue-600"
                       />
-                    )}
-
-                    {selectedProperties.map((prop) => {
-                      // Find the property in our properties list
-                      const property = properties.find(
-                        (p) => p.propertyId === prop.value,
-                      );
-                      if (!property) return null;
-
-                      return (
+                      <span className="text-sm font-medium">
+                        {isPinDraggable ? 'ย้ายตำแหน่งของฉัน✅' : 'ย้ายตำแหน่งของฉัน'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div className="h-[450px] md:h-[550px]">
+                  <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                    <GoogleMap
+                      mapContainerStyle={{ width: "100%", height: "100%" }}
+                      center={userLocation || { lat: 13.7563, lng: 100.5018 }} // Bangkok as default
+                      zoom={11}
+                    >
+                      {userLocation && (
                         <Marker
-                          key={prop.value}
-                          position={property.coordinates}
-                          title={property.propertyId}
+                          position={userLocation}
+                          draggable={isPinDraggable}
+                          onDragEnd={(e) => {
+                            if (e.latLng) {
+                              setUserLocation({
+                                lat: e.latLng.lat(),
+                                lng: e.latLng.lng()
+                              });
+                            }
+                          }}
+                          icon={{
+                            url: isPinDraggable 
+                              ? "https://maps.google.com/mapfiles/ms/icons/green-dot.png" 
+                              : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                          }}
                         />
-                      );
-                    })}
+                      )}
 
-                    {directions && (
-                      <DirectionsRenderer
-                        directions={directions}
-                        options={{
-                          suppressMarkers: true,
-                        }}
-                      />
-                    )}
-                  </GoogleMap>
-                </LoadScript>
+                      {selectedProperties.map((prop) => {
+                        // Find the property in our properties list
+                        const property = properties.find(
+                          (p) => p.propertyId === prop.value,
+                        );
+                        if (!property) return null;
+
+                        return (
+                          <Marker
+                            key={prop.value}
+                            position={property.coordinates}
+                            title={property.propertyId}
+                          />
+                        );
+                      })}
+
+                      {directions && (
+                        <DirectionsRenderer
+                          directions={directions}
+                          options={{
+                            suppressMarkers: true,
+                          }}
+                        />
+                      )}
+                    </GoogleMap>
+                  </LoadScript>
               </div>
             </div>
 
