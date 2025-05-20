@@ -26,11 +26,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route planning API endpoint
   app.post('/api/route-planning', async (req, res) => {
     try {
-      const { user_latitude, user_longtitude, propertyId_list, user_timeselect } = req.body;
+      console.log("Received route planning request:", req.body);
+      
+      const { user_latitude, user_longtitude, propertyId_list } = req.body;
       
       // Validate required fields
       if (!user_latitude || !user_longtitude || !propertyId_list) {
         return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      // Forward the request to the external webhook if provided
+      try {
+        // You can uncomment this to forward to an external webhook
+        /*
+        const webhookUrl = "https://YOUR-WEBHOOK-URL.ngrok-free.app/webhook/googlemap-route-calculator";
+        const webhookResponse = await axios.post(webhookUrl, {
+          user_latitude,
+          user_longtitude,
+          propertyid_list: propertyId_list,
+          user_timeselect: req.body.user_timeselect || Math.floor(Date.now() / 1000)
+        });
+        
+        if (webhookResponse.data) {
+          return res.json(webhookResponse.data);
+        }
+        */
+      } catch (webhookError) {
+        console.error('Error forwarding to webhook:', webhookError);
+        // Continue with local calculation if webhook fails
       }
       
       // Get properties from Google Sheets to have accurate data
@@ -42,8 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allProperties = []; // Continue with empty properties if fetch fails
       }
       
-      // For demo purposes, calculate a simple route
-      const propertyIds = propertyId_list.split(',');
+      // Process property IDs (support both propertyId_list and propertyid_list)
+      const propertyIds = (propertyId_list || "").split(',');
       
       // Generate response with either real property data or fallback
       const data = propertyIds.map((id: string, index: number) => {
@@ -55,13 +78,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             goto: property.propertyId,
             contact: `K.${property.landlordName} ${property.landlordContact}`,
             maps: property.mapUrl,
-            websiteLink: property.websiteLink,
+            "website link": property.websiteLink, // Match the format expected by client
             step: (index + 1).toString(),
             form: index === 0 ? "START" : propertyIds[index - 1],
             distance: index === 0 ? "0 km" : `${Math.round(Math.random() * 20 + 5)} km`,
-            duration_text: index === 0 ? "0 mins" : `${Math.round(Math.random() * 30 + 10)} mins`,
-            distance_value: "0",
-            duration_value: "0"
+            duration_minute: index === 0 ? 0 : Math.round(Math.random() * 30 + 10),
+            distance_value: Math.floor(Math.random() * 30000 + 5000).toString(),
+            duration_value: Math.floor(Math.random() * 2400 + 600).toString()
           };
         } else {
           // Fallback if property not found
@@ -69,11 +92,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             goto: id,
             contact: `Contact information unavailable`,
             maps: `https://maps.google.com/`,
-            websiteLink: `https://www.thaiindustrialproperty.com/`,
+            "website link": `https://www.thaiindustrialproperty.com/`,
             step: (index + 1).toString(),
             form: index === 0 ? "START" : propertyIds[index - 1],
             distance: `${Math.floor(Math.random() * 30 + 5)} km`,
-            duration_text: `${Math.floor(Math.random() * 40 + 10)} mins`,
+            duration_minute: Math.floor(Math.random() * 40 + 10),
             distance_value: Math.floor(Math.random() * 30000 + 5000).toString(),
             duration_value: Math.floor(Math.random() * 2400 + 600).toString()
           };
@@ -101,6 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mapsUrl
       };
       
+      console.log("Sending route planning response:", response);
       res.json(response);
     } catch (error) {
       console.error('Error in route planning:', error);

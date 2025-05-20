@@ -97,12 +97,15 @@ const RouteMapPage: React.FC = () => {
 
     setIsLoading(true);
 
+    // Make sure to use the current user location (which may have been moved)
     const routeData = {
       user_latitude: userLocation.lat,
       user_longtitude: userLocation.lng,
       propertyid_list: selectedProperties.map((prop) => prop.value).join(","),
       user_timeselect: new Date(`2023-01-01T${startTime}`).getTime() / 1000,
     };
+    
+    console.log("Sending location:", userLocation);
 
     try {
       // Call the route planning API
