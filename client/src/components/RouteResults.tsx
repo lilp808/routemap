@@ -1,121 +1,235 @@
-import React from 'react';
-import { RouteResponse } from '../types';
-import { Clock, MapPin, ExternalLink } from 'lucide-react';
+import React, { useState } from "react";
+import { RouteResponse, RouteStep } from "../types";
+import { Clock, MapPin, ExternalLink, Share2 } from "lucide-react";
 
 interface RouteResultsProps {
   routeResponse: RouteResponse | null;
-  startTime: string;
+  startTime: string; // รูปแบบ "HH:mm"
 }
 
-const RouteResults: React.FC<RouteResultsProps> = ({ routeResponse, startTime }) => {
+const RouteResults: React.FC<RouteResultsProps> = ({
+  routeResponse,
+  startTime,
+}) => {
+  const [shareStatus, setShareStatus] = useState<string>('');
   if (!routeResponse) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 h-[500px] md:h-[600px] overflow-y-auto">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนเส้นทาง</h2>
-        
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Route Map</h2>
+
         <div className="text-center py-12">
-          <svg className="mx-auto text-gray-400 mb-4" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="mx-auto text-gray-400 mb-4"
+            xmlns="http://www.w3.org/2000/svg"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
-          <p className="text-gray-500">กรุณาเลือกสถานที่และกดวางแผนเส้นทาง</p>
+          <p className="text-gray-500">
+            Please select a location and press Calcualte Route.
+          </p>
         </div>
       </div>
     );
   }
-  
-  // Calculate estimated times
-  const times = routeResponse.data.map((route, index) => {
-    if (index === 0) {
-      return startTime;
+
+  console.log("This is info : ", routeResponse.data);
+
+  const TALKING_TIME = 15; // นาที เผื่อเวลาคุยที่จุด
+
+  const timeToMinutes = (timeStr: string) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const minutesToTime = (totalMinutes: number) => {
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  };
+
+  let currentTime = timeToMinutes(startTime); // เวลาเริ่มต้นคือเวลาที่ออกเดินทางจาก Start point
+
+  const times = routeResponse.data.map((route, idx) => {
+    // Get duration in minutes - from either duration_minute property or parse from duration_text
+    const getDurationMinutes = (route: RouteStep): number => {
+      if (route.duration_minute !== undefined) {
+        return route.duration_minute;
+      } else if (route.duration_text) {
+        // Try to parse from text like "21 mins"
+        const match = route.duration_text.match(/(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      } else if (route.duration_value) {
+        // Convert seconds to minutes if available
+        return Math.round(parseInt(route.duration_value) / 60);
+      }
+      return 0;
+    };
+    
+    if (idx === 0) {
+      // ที่จุดแรก เราต้องบวกเวลาการเดินทางจากจุดเริ่มต้น (START) ถึงจุดนี้
+      currentTime += getDurationMinutes(route);
+      const arriveTime = currentTime; // เวลาเดินทางถึงจุดนี้
+      currentTime += TALKING_TIME; // เวลาคุยก่อนออกเดินทางไปจุดถัดไป
+      return minutesToTime(arriveTime);
+    } else {
+      // สำหรับจุดถัดไป
+      currentTime += getDurationMinutes(route);
+      const arriveTime = currentTime; // เวลาเดินทางถึงจุดนี้
+      currentTime += TALKING_TIME; // เวลาคุยก่อนออกเดินทางไปจุดถัดไป
+      return minutesToTime(arriveTime);
     }
-    
-    // Parse the previous time
-    const [hours, minutes] = routeResponse.data[index - 1].duration_text.split(' ')[0] !== "0" 
-      ? [parseInt(startTime.split(':')[0]), parseInt(startTime.split(':')[1]) + parseInt(routeResponse.data[index - 1].duration_text.split(' ')[0])]
-      : [parseInt(startTime.split(':')[0]), parseInt(startTime.split(':')[1])];
-    
-    // Adjust for minutes overflow
-    const adjustedHours = hours + Math.floor(minutes / 60);
-    const adjustedMinutes = minutes % 60;
-    
-    return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`;
   });
+
+  // แยกชื่อกับเบอร์โทรจาก contact (สมมติชื่อคือตัวแรกก่อนเว้นวรรค)
+  const splitContact = (contact: string) => {
+    const parts = contact.split(" ");
+    return {
+      name: parts[0],
+      phone: parts.slice(1).join(" "),
+    };
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 h-[500px] md:h-[600px] overflow-y-auto">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">แผนเส้นทาง</h2>
-      
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Route Map</h2>
+
       <div>
         <div className="mb-6">
           <h3 className="text-xl font-bold mb-2">Property Visit Plan</h3>
-          <p className="text-gray-600">เริ่มต้น: <span className="font-medium">{startTime}</span></p>
+          <p className="text-gray-600">
+            Start Time : <span className="font-medium">{startTime}</span>
+          </p>
         </div>
-        
-        {routeResponse.data.map((route, index) => (
-          <div key={route.goto} className="border-l-4 border-yellow-500 pl-4 pb-8 relative">
-            <div className="absolute w-4 h-4 rounded-full bg-yellow-500 -left-[10px]"></div>
-            <div className="mb-2">
-              <div className="flex justify-between">
-                <span className="font-semibold text-lg">{route.step}. {route.goto}</span>
-                <span className="text-gray-600">{times[index]}</span>
+
+        {routeResponse.data.map((route, index) => {
+          const { name, phone } = splitContact(route.contact);
+          return (
+            <div
+              key={route.goto}
+              className="border-l-4 border-yellow-500 pl-4 pb-8 relative"
+            >
+              <div className="absolute w-4 h-4 rounded-full bg-yellow-500 -left-[10px]"></div>
+              <div className="mb-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-lg">
+                    {route.step}. {route.goto}
+                  </span>
+                  <span className="text-gray-600">{times[index]}</span>
+                </div>
+                <a
+                  href={route["website link"]} // ตรงกับ key จริง
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline text-sm block mb-2"
+                >
+                  Property Details &#8599;
+                </a>
               </div>
-              <a 
-                href={route.websiteLink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-sm block mb-2"
-              >
-                ดูรายละเอียดเพิ่มเติม &#8599;
-              </a>
-            </div>
-            
-            <div className="text-gray-700 mb-2">
-              <p className="font-medium">{route.contact.split(' ')[0]}</p>
-              <p>Contact: {route.contact.split(' ').slice(1).join(' ')}</p>
-            </div>
-            
-            <div className="flex items-center gap-2 mt-3">
-              <MapPin size={16} className="text-red-500" />
-              <a 
-                href={route.maps} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline text-sm"
-              >
-                ดูตำแหน่งที่ตั้ง
-              </a>
-            </div>
-            
-            {index > 0 && (
+
+              <div className="text-gray-700 mb-2">
+                <p className="font-medium">{name}</p>
+                <p>Contact: {phone}</p>
+              </div>
+
+              <div className="flex items-center gap-2 mt-3">
+                <MapPin size={16} className="text-red-500" />
+                <a
+                  href={route.maps}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  View location
+                </a>
+              </div>
+
+              {/* แสดง duration และ distance ทุกจุด (รวมจุดแรก) */}
               <div className="mt-3 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <Clock size={14} />
-                  <span>{route.duration_text}</span>
+                  <span>{route.duration_minute !== undefined ? `${route.duration_minute} min` : route.duration_text} </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
                   <span>{route.distance}</span>
                 </div>
               </div>
-            )}
-          </div>
-        ))}
-        
-        <div className="mt-6 pt-6 border-t">
-          <a 
+            </div>
+          );
+        })}
+
+        <div className="mt-6 pt-6 border-t flex flex-col gap-3">
+          <a
             href={routeResponse.mapsUrl}
-            target="_blank" 
+            target="_blank"
             rel="noopener noreferrer"
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 w-full"
           >
             <ExternalLink size={18} />
-            เปิดใน Google Maps
+            Open In Google Maps
           </a>
+          
+          {/* LINE Share Button */}
+          <button
+            onClick={() => {
+              // Create formatted text for sharing
+              let shareText = `# Property Visit Plan\nStart Time: ${startTime}\n\n`;
+              routeResponse.data.forEach((route, i) => {
+                const { name, phone } = splitContact(route.contact);
+                shareText += `${route.step}. ${route.goto}    ${times[i]}\n`;
+                shareText += `${route["website link"]}\n\n`;
+                shareText += `# ${name}\n`;
+                shareText += `Contact: ${phone}\n`;
+                shareText += `Location: ${route.maps}\n\n`;
+              });
+              
+              // Encode and create LINE share URL
+              const encodedText = encodeURIComponent(shareText);
+              const lineShareUrl = `https://line.me/R/msg/text/?${encodedText}`;
+              
+              // Open LINE sharing in new window
+              window.open(lineShareUrl, '_blank');
+              setShareStatus('Opening LINE to share route information');
+              
+              // Reset status after 3 seconds
+              setTimeout(() => {
+                setShareStatus('');
+              }, 3000);
+            }}
+            className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2 w-full"
+          >
+            <Share2 size={18} />
+            Share to LINE
+          </button>
+          
+          {shareStatus && (
+            <div className="text-center text-green-600 text-sm mt-1 animate-pulse">
+              {shareStatus}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,14 +1,18 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getDatabase } from 'firebase/database';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getDatabase } from "firebase/database";
 
 // Firebase configuration using environment variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBWeM_PBbOQW0hVGnhHJ7FGuX7TBvE3cxk",
+  authDomain: "at-soko-customerservicechatbot.firebaseapp.com",
+  databaseURL:
+    "https://at-soko-customerservicechatbot-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "at-soko-customerservicechatbot",
+  storageBucket: "at-soko-customerservicechatbot.firebasestorage.app",
+  messagingSenderId: "485923525379",
+  appId: "1:485923525379:web:fe61c10556bcf7f6b1cf36",
+  measurementId: "G-1MMKDKRJ80",
 };
 
 // Initialize Firebase

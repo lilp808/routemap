@@ -1,23 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase/config';
-import { Map, MapPin } from 'lucide-react';
-import { RouteResponse, Property, RouteOption } from '../types';
-import PropertySelect from '../components/PropertySelect';
-import RouteResults from '../components/RouteResults';
-import { fetchProperties, propertiesToRouteOptions, planRoute } from '../services/propertyService';
+import React, { useState, useEffect } from "react";
+import {
+  GoogleMap,
+  LoadScript,
+  Marker,
+  DirectionsRenderer,
+} from "@react-google-maps/api";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase/config";
+import { Map, MapPin } from "lucide-react";
+import { RouteResponse, Property, RouteOption } from "../types";
+import PropertySelect from "../components/PropertySelect";
+import RouteResults from "../components/RouteResults";
+import {
+  fetchProperties,
+  propertiesToRouteOptions,
+  planRoute,
+} from "../services/propertyService";
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDfjkja0tfp9ZrubUtt4phw1ZzrEpOaWYw';
+const GOOGLE_MAPS_API_KEY = "AIzaSyDfjkja0tfp9ZrubUtt4phw1ZzrEpOaWYw";
 
 const RouteMapPage: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertyOptions, setPropertyOptions] = useState<RouteOption[]>([]);
-  const [selectedProperties, setSelectedProperties] = useState<RouteOption[]>([]);
-  const [startTime, setStartTime] = useState('09:00');
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [routeResponse, setRouteResponse] = useState<RouteResponse | null>(null);
+  const [selectedProperties, setSelectedProperties] = useState<RouteOption[]>(
+    [],
+  );
+  const [startTime, setStartTime] = useState("09:00");
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [directions, setDirections] =
+    useState<google.maps.DirectionsResult | null>(null);
+  const [routeResponse, setRouteResponse] = useState<RouteResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
 
@@ -27,12 +44,12 @@ const RouteMapPage: React.FC = () => {
       try {
         const data = await fetchProperties();
         setProperties(data);
-        
+
         // Convert properties to route options format
         const options = propertiesToRouteOptions(data);
         setPropertyOptions(options);
       } catch (error) {
-        console.error('Error loading properties:', error);
+        console.error("Error loading properties:", error);
         // Fallback to empty data
         setProperties([]);
         setPropertyOptions([]);
@@ -40,7 +57,7 @@ const RouteMapPage: React.FC = () => {
         setIsLoadingProperties(false);
       }
     }
-    
+
     loadProperties();
   }, []);
 
@@ -51,12 +68,12 @@ const RouteMapPage: React.FC = () => {
         (position) => {
           setUserLocation({
             lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lng: position.coords.longitude,
           });
         },
         (error) => {
-          console.error('Error getting location:', error);
-        }
+          console.error("Error getting location:", error);
+        },
       );
     }
   }, []);
@@ -65,18 +82,18 @@ const RouteMapPage: React.FC = () => {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
   const handleSubmit = async () => {
     if (!userLocation) {
-      alert('กรุณาอนุญาตให้เข้าถึงตำแหน่งของคุณเพื่อดำเนินการต่อ');
+      alert("Please allow access to your location to continue.");
       return;
     }
 
     if (selectedProperties.length === 0) {
-      alert('กรุณาเลือกอย่างน้อยหนึ่งสถานที่');
+      alert("Please select at least one location.");
       return;
     }
 
@@ -85,8 +102,8 @@ const RouteMapPage: React.FC = () => {
     const routeData = {
       user_latitude: userLocation.lat,
       user_longtitude: userLocation.lng,
-      propertyid_list: selectedProperties.map(prop => prop.value).join(','),
-      user_timeselect: new Date(`2023-01-01T${startTime}`).getTime() / 1000
+      propertyid_list: selectedProperties.map((prop) => prop.value).join(","),
+      user_timeselect: new Date(`2023-01-01T${startTime}`).getTime() / 1000,
     };
 
     try {
@@ -99,8 +116,8 @@ const RouteMapPage: React.FC = () => {
         calculateDirections(userLocation, selectedProperties, properties);
       }
     } catch (error) {
-      console.error('Error planning route:', error);
-      alert('เกิดข้อผิดพลาดในการวางแผนเส้นทาง โปรดลองอีกครั้ง');
+      console.error("Error planning route:", error);
+      alert("There was an error while planning your route. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -108,40 +125,48 @@ const RouteMapPage: React.FC = () => {
 
   // Helper function to calculate route directions
   const calculateDirections = (
-    userLocation: {lat: number, lng: number}, 
-    selectedProps: RouteOption[], 
-    allProperties: Property[]
+    userLocation: { lat: number; lng: number },
+    selectedProps: RouteOption[],
+    allProperties: Property[],
   ) => {
     const directionsService = new google.maps.DirectionsService();
-    
+
     // Find property objects for selected properties
-    const selectedPropertyObjects = selectedProps.map(selected => 
-      allProperties.find(p => p.propertyId === selected.value)
-    ).filter(p => p !== undefined);
-    
+    const selectedPropertyObjects = selectedProps
+      .map((selected) =>
+        allProperties.find((p) => p.propertyId === selected.value),
+      )
+      .filter((p) => p !== undefined);
+
     if (selectedPropertyObjects.length === 0) return;
-    
+
     // Create waypoints for Google Directions API
-    const waypoints = selectedPropertyObjects.slice(1).map(property => ({
-      location: new google.maps.LatLng(property!.coordinates.lat, property!.coordinates.lng),
-      stopover: true
+    const waypoints = selectedPropertyObjects.slice(1).map((property) => ({
+      location: new google.maps.LatLng(
+        property!.coordinates.lat,
+        property!.coordinates.lng,
+      ),
+      stopover: true,
     }));
 
     const firstProperty = selectedPropertyObjects[0]!;
 
     const request: google.maps.DirectionsRequest = {
       origin: new google.maps.LatLng(userLocation.lat, userLocation.lng),
-      destination: new google.maps.LatLng(firstProperty.coordinates.lat, firstProperty.coordinates.lng),
+      destination: new google.maps.LatLng(
+        firstProperty.coordinates.lat,
+        firstProperty.coordinates.lng,
+      ),
       waypoints,
       optimizeWaypoints: true,
-      travelMode: google.maps.TravelMode.DRIVING
+      travelMode: google.maps.TravelMode.DRIVING,
     };
 
     directionsService.route(request, (result, status) => {
       if (status === google.maps.DirectionsStatus.OK) {
         setDirections(result);
       } else {
-        console.error('Error calculating directions:', status);
+        console.error("Error calculating directions:", status);
       }
     });
   };
@@ -152,13 +177,15 @@ const RouteMapPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Map className="text-yellow-500" size={24} />
-            <h1 className="text-xl font-bold text-gray-800">ATSOKO Property Route Planner</h1>
+            <h1 className="text-xl font-bold text-gray-800">
+              ATSOKO Property Route Planner
+            </h1>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 hover:underline"
+            className=" inline-flex items-center px-4 py-2 bg-yellow-500 text-white font-semibold text-sm rounded-md shadow hover:bg-gray-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 "
           >
-            ออกจากระบบ
+            Sign Out
           </button>
         </div>
       </header>
@@ -166,30 +193,34 @@ const RouteMapPage: React.FC = () => {
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">วางแผนการเดินทาง</h2>
-            
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Paln a Property to Visit
+            </h2>
+
             {isLoadingProperties ? (
               <div className="flex justify-center items-center h-32">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                <span className="ml-3 text-gray-600">กำลังโหลดข้อมูลอสังหาริมทรัพย์...</span>
+                <span className="ml-3 text-gray-600">Loading Property...</span>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    เลือกสถานที่
+                    Choose Property
                   </label>
-                  <PropertySelect 
+                  <PropertySelect
                     options={propertyOptions}
                     value={selectedProperties}
                     onChange={setSelectedProperties}
                   />
-                  <div className="text-xs text-gray-500 mt-1">เลือกได้หลายรายการและสามารถลบได้</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Multiple items can be selected and deleted.
+                  </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    เวลาเริ่มต้น
+                    Start Time
                   </label>
                   <input
                     type="time"
@@ -204,22 +235,30 @@ const RouteMapPage: React.FC = () => {
             <div className="flex justify-center md:justify-start">
               <button
                 onClick={handleSubmit}
-                disabled={isLoading || !userLocation || selectedProperties.length === 0 || isLoadingProperties}
+                disabled={
+                  isLoading ||
+                  !userLocation ||
+                  selectedProperties.length === 0 ||
+                  isLoadingProperties
+                }
                 className={`${
-                  isLoading || !userLocation || selectedProperties.length === 0 || isLoadingProperties
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                  isLoading ||
+                  !userLocation ||
+                  selectedProperties.length === 0 ||
+                  isLoadingProperties
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-yellow-500 hover:bg-gray-700"
                 } text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center gap-2`}
               >
                 {isLoading ? (
                   <>
                     <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                    กำลังวางแผน...
+                    Calculating...
                   </>
                 ) : (
                   <>
                     <MapPin size={18} />
-                    วางแผนเส้นทาง
+                    Calculate Route
                   </>
                 )}
               </button>
@@ -231,7 +270,7 @@ const RouteMapPage: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md overflow-hidden h-[500px] md:h-[600px]">
                 <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
                   <GoogleMap
-                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                    mapContainerStyle={{ width: "100%", height: "100%" }}
                     center={userLocation || { lat: 13.7563, lng: 100.5018 }} // Bangkok as default
                     zoom={11}
                   >
@@ -239,16 +278,18 @@ const RouteMapPage: React.FC = () => {
                       <Marker
                         position={userLocation}
                         icon={{
-                          url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                         }}
                       />
                     )}
 
                     {selectedProperties.map((prop) => {
                       // Find the property in our properties list
-                      const property = properties.find(p => p.propertyId === prop.value);
+                      const property = properties.find(
+                        (p) => p.propertyId === prop.value,
+                      );
                       if (!property) return null;
-                      
+
                       return (
                         <Marker
                           key={prop.value}
@@ -262,7 +303,7 @@ const RouteMapPage: React.FC = () => {
                       <DirectionsRenderer
                         directions={directions}
                         options={{
-                          suppressMarkers: true
+                          suppressMarkers: true,
                         }}
                       />
                     )}

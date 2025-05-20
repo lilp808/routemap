@@ -19,11 +19,13 @@ export interface RouteStep {
   goto: string;
   contact: string;
   maps: string;
-  websiteLink: string;
+  "website link": string; // This is how it's returned from the API
+  websiteLink?: string;   // Alternative property name
   step: string;
   form: string;
   distance: string;
-  duration_text: string;
+  duration_minute?: number; // Added from API response
+  duration_text?: string;   // Alternative property name
   distance_value: string;
   duration_value: string;
 }
