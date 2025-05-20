@@ -43,16 +43,16 @@ const MobileNavbar: React.FC<NavbarProps> = ({ currentPage }) => {
         {/* Desktop navigation */}
         <div className="hidden lg:flex items-center space-x-6">
           <Link href="/">
-            <a className={`flex items-center gap-1 font-medium ${currentPage === 'route' ? 'text-blue-600' : 'text-gray-700 hover:text-gray-900'}`}>
+            <div className={`flex items-center gap-1 font-medium cursor-pointer ${currentPage === 'route' ? 'text-blue-600' : 'text-gray-700 hover:text-gray-900'}`}>
               <Map size={18} />
               <span>แผนเส้นทาง</span>
-            </a>
+            </div>
           </Link>
           <Link href="/upload">
-            <a className={`flex items-center gap-1 font-medium ${currentPage === 'upload' ? 'text-blue-600' : 'text-gray-700 hover:text-gray-900'}`}>
+            <div className={`flex items-center gap-1 font-medium cursor-pointer ${currentPage === 'upload' ? 'text-blue-600' : 'text-gray-700 hover:text-gray-900'}`}>
               <Upload size={18} />
               <span>อัพโหลดข้อมูล</span>
-            </a>
+            </div>
           </Link>
           <button 
             onClick={handleLogout}
@@ -69,22 +69,22 @@ const MobileNavbar: React.FC<NavbarProps> = ({ currentPage }) => {
         <div className="lg:hidden bg-white shadow-md absolute w-full border-t border-gray-100 slide-in-top">
           <div className="flex flex-col px-4 py-2 space-y-3">
             <Link href="/">
-              <a 
-                className={`flex items-center gap-2 py-3 px-2 rounded-md ${currentPage === 'route' ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+              <div 
+                className={`flex items-center gap-2 py-3 px-2 rounded-md cursor-pointer ${currentPage === 'route' ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Map size={18} />
                 <span>แผนเส้นทาง</span>
-              </a>
+              </div>
             </Link>
             <Link href="/upload">
-              <a 
-                className={`flex items-center gap-2 py-3 px-2 rounded-md ${currentPage === 'upload' ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+              <div 
+                className={`flex items-center gap-2 py-3 px-2 rounded-md cursor-pointer ${currentPage === 'upload' ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Upload size={18} />
                 <span>อัพโหลดข้อมูล</span>
-              </a>
+              </div>
             </Link>
             <button 
               onClick={handleLogout}

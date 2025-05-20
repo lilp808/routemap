@@ -47,13 +47,13 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Switch>
         <Route path="/login">
-          {user ? () => setLocation('/') : () => <LoginPage />}
+          {user ? <RouteMapPage /> : <LoginPage />}
         </Route>
         <Route path="/upload">
-          <ProtectedRoute component={UploadInfoPage} />
+          {user ? <UploadInfoPage /> : <LoginPage />}
         </Route>
         <Route path="/">
-          {user ? () => <RouteMapPage /> : () => setLocation('/login')}
+          {user ? <RouteMapPage /> : <LoginPage />}
         </Route>
       </Switch>
     </div>

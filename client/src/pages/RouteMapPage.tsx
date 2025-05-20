@@ -166,22 +166,7 @@ const RouteMapPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Map className="text-yellow-500" size={24} />
-            <h1 className="text-xl font-bold text-gray-800">
-              ATSOKO Property Route Planner
-            </h1>
-          </div>
-          <button
-            onClick={handleLogout}
-            className=" inline-flex items-center px-4 py-2 bg-yellow-500 text-white font-semibold text-sm rounded-md shadow hover:bg-gray-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 "
-          >
-            Sign Out
-          </button>
-        </div>
-      </header>
+      <MobileNavbar currentPage="route" />
 
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
