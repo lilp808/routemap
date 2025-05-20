@@ -5,9 +5,8 @@ import {
   Marker,
   DirectionsRenderer,
 } from "@react-google-maps/api";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase/config";
-import { Map, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
+import MobileNavbar from "../components/MobileNavbar";
 import { RouteResponse, Property, RouteOption } from "../types";
 import PropertySelect from "../components/PropertySelect";
 import RouteResults from "../components/RouteResults";
@@ -78,13 +77,7 @@ const RouteMapPage: React.FC = () => {
     }
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
+  // Logout functionality is now handled by the MobileNavbar component
 
   const handleSubmit = async () => {
     if (!userLocation) {
