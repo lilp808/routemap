@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
       await signInWithEmailAndPassword(auth, email, password);
       // Authentication state will be handled by onAuthStateChanged in App.tsx
     } catch (err: any) {
-      setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      setError("Email or password is incorrect.");
       console.error(err.message);
     } finally {
       setIsLoading(false);
@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("กรุณากรอกอีเมลก่อนเพื่อรีเซ็ตรหัสผ่าน");
+      setError("Please enter your email first to reset your password.");
       return;
     }
 
@@ -40,7 +40,7 @@ const LoginPage: React.FC = () => {
       await sendPasswordResetEmail(auth, email);
       setIsResetRequested(true);
     } catch (err: any) {
-      setError("ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบอีเมลให้ถูกต้อง");
+      setError("Unable to send email. Please check your email address.");
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
         <div className="bg-yellow-500 py-6 px-8">
           <div className="flex items-center justify-center gap-2 text-white">
             <Map size={32} className="animate-pulse" />
-            <h1 className="text-2xl font-bold">ATSOKO Route Planner</h1>
+            <h1 className="text-2xl font-bold">ATSOKO | Agent Systems</h1>
           </div>
         </div>
 

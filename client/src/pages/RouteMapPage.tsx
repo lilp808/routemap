@@ -36,7 +36,9 @@ const RouteMapPage: React.FC = () => {
     null,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingFind, setIsLoadingFind] = React.useState(false);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
+  const [mapLink, setMapLink] = useState("");
 
   // Fetch properties from Google Sheets when component mounts
   useEffect(() => {
@@ -75,7 +77,7 @@ const RouteMapPage: React.FC = () => {
           console.error("Error getting location:", error);
           // Set a default location (Bangkok)
           setUserLocation({ lat: 13.736717, lng: 100.523186 });
-        }
+        },
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
@@ -83,6 +85,52 @@ const RouteMapPage: React.FC = () => {
       setUserLocation({ lat: 13.736717, lng: 100.523186 });
     }
   }, []);
+
+  const handleSubmitMapLinks = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mapLink) return;
+
+    setIsLoadingFind(true);
+
+    try {
+      const response = await fetch(
+        "https://d217-2001-fb1-8b-7ff4-14a2-f3c4-192e-73c5.ngrok-free.app/webhook/GetLatLng",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: mapLink,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      console.log(data);
+
+      if (
+        data.length > 0 &&
+        data[0].target_latitude &&
+        data[0].target_longtitude
+      ) {
+        console.log("Latitude:", data[0].target_latitude);
+        console.log("Longitude:", data[0].target_longtitude);
+        setUserLocation({
+          lat: data[0].target_latitude,
+          lng: data[0].target_longtitude,
+        });
+      } else {
+        console.log("ไม่สามารถแยกละติจูด/ลองจิจูดจาก Webhook ได้");
+      }
+      setMapLink("");
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาด:", error);
+    } finally {
+      setIsLoadingFind(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!userLocation) {
@@ -97,15 +145,12 @@ const RouteMapPage: React.FC = () => {
 
     setIsLoading(true);
 
-    // Make sure to use the current user location (which may have been moved)
     const routeData = {
       user_latitude: userLocation.lat,
       user_longtitude: userLocation.lng,
       propertyid_list: selectedProperties.map((prop) => prop.value).join(","),
       user_timeselect: new Date(`2023-01-01T${startTime}`).getTime() / 1000,
     };
-    
-    console.log("Sending location:", userLocation);
 
     try {
       // Call the route planning API
@@ -180,19 +225,21 @@ const RouteMapPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              วางแผนเส้นทางเยี่ยมชมอสังหาริมทรัพย์
+              Plan a route to visit the property
             </h2>
 
             {isLoadingProperties ? (
               <div className="flex justify-center items-center h-32">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                <span className="ml-3 text-gray-600">กำลังโหลดข้อมูล...</span>
+                <span className="ml-3 text-gray-600">
+                  Loading a Property...
+                </span>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    เลือกอสังหาริมทรัพย์
+                    Selected Property
                   </label>
                   <PropertySelect
                     options={propertyOptions}
@@ -200,13 +247,13 @@ const RouteMapPage: React.FC = () => {
                     onChange={setSelectedProperties}
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    สามารถเลือกได้หลายรายการ
+                    Multiple items can be selected
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    เวลาเริ่มต้น
+                    First Property Arrival Time 
                   </label>
                   <input
                     type="time"
@@ -239,12 +286,12 @@ const RouteMapPage: React.FC = () => {
                 {isLoading ? (
                   <>
                     <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                    กำลังคำนวณ...
+                    Calcualting...
                   </>
                 ) : (
                   <>
                     <MapPin size={18} />
-                    คำนวณเส้นทาง
+                    Calculate Route
                   </>
                 )}
               </button>
@@ -255,22 +302,52 @@ const RouteMapPage: React.FC = () => {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-700">แผนที่</h3>
-                  <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-700">Map</h3>
+
+                  <form
+                    onSubmit={handleSubmitMapLinks}
+                    className="flex items-center gap-2 w-full max-w-xl"
+                  >
+                    <input
+                      type="text"
+                      value={mapLink}
+                      onChange={(e) => setMapLink(e.target.value)}
+                      placeholder="Input Google Maps URL or keywords"
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 px-4 py-2 text-sm border"
+                      disabled={isLoadingFind} // ถ้าจะ disable input ตอนโหลดด้วยก็ใส่ได้
+                    />
+                    <button
+                      type="submit"
+                      disabled={!mapLink || isLoadingFind}
+                      className={`text-white text-sm font-medium px-4 py-2 rounded-md transition 
+                        ${!mapLink || isLoadingFind ? "bg-gray-400 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-600"}
+                      `}
+                    >
+                      {isLoadingFind ? (
+                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mx-auto"></div>
+                      ) : (
+                        "Find"
+                      )}
+                    </button>
+                  </form>
+
+                  <div className="flex items-center gap-2 ml-4">
                     <label className="flex items-center gap-2 text-sm">
-                      <input 
+                      <input
                         type="checkbox"
                         checked={isPinDraggable}
                         onChange={() => setIsPinDraggable(!isPinDraggable)}
                         className="rounded text-blue-600"
                       />
                       <span className="text-sm font-medium">
-                        {isPinDraggable ? 'ย้ายตำแหน่งของฉัน✅' : 'ย้ายตำแหน่งของฉัน'}
+                        {isPinDraggable
+                          ? "Choose pin on map"
+                          : "Choose pin on map"}
                       </span>
                     </label>
                   </div>
                 </div>
-                
+
                 <div className="h-[450px] md:h-[550px]">
                   <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
                     <GoogleMap
@@ -286,13 +363,13 @@ const RouteMapPage: React.FC = () => {
                             if (e.latLng) {
                               setUserLocation({
                                 lat: e.latLng.lat(),
-                                lng: e.latLng.lng()
+                                lng: e.latLng.lng(),
                               });
                             }
                           }}
                           icon={{
-                            url: isPinDraggable 
-                              ? "https://maps.google.com/mapfiles/ms/icons/green-dot.png" 
+                            url: isPinDraggable
+                              ? "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
                               : "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                           }}
                         />
@@ -329,7 +406,10 @@ const RouteMapPage: React.FC = () => {
             </div>
 
             <div className="lg:col-span-1">
-              <RouteResults routeResponse={routeResponse} startTime={startTime} />
+              <RouteResults
+                routeResponse={routeResponse}
+                startTime={startTime}
+              />
             </div>
           </div>
         </div>

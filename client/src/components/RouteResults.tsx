@@ -77,9 +77,7 @@ const RouteResults: React.FC<RouteResultsProps> = ({
 
   const times = routeResponse.data.map((route, idx) => {
     if (idx === 0) {
-      // ที่จุดแรก เราต้องบวกเวลาการเดินทางจากจุดเริ่มต้น (START) ถึงจุดนี้
-      currentTime += getDurationMinutes(route);
-      const arriveTime = currentTime; // เวลาเดินทางถึงจุดนี้
+      const arriveTime = currentTime; // เวลาที่ถึงจุดโกดังแรก
       currentTime += TALKING_TIME; // เวลาคุยก่อนออกเดินทางไปจุดถัดไป
       return minutesToTime(arriveTime);
     } else {
@@ -88,6 +86,12 @@ const RouteResults: React.FC<RouteResultsProps> = ({
       const arriveTime = currentTime; // เวลาเดินทางถึงจุดนี้
       currentTime += TALKING_TIME; // เวลาคุยก่อนออกเดินทางไปจุดถัดไป
       return minutesToTime(arriveTime);
+    }
+  });
+
+  const firstminute = routeResponse.data.map((route, idx) => {
+    if (idx === 0) {
+      return getDurationMinutes(route);
     }
   });
 
@@ -103,39 +107,46 @@ const RouteResults: React.FC<RouteResultsProps> = ({
   // Function to share route information to LINE
   const shareToLine = () => {
     // Create formatted text for sharing
-    let shareText = `# แผนการเยี่ยมชมอสังหาริมทรัพย์\nเวลาเริ่มต้น: ${startTime}\n\n`;
+    let shareText = `# Property Visit Plan\nShould Start at: ${minutesToTime(shouldgotime)}\n\n`;
     routeResponse.data.forEach((route, i) => {
       const { name, phone } = splitContact(route.contact);
-      shareText += `${route.step}. ${route.goto}    ${times[i]}\n`;
-      shareText += `${route["website link"]}\n\n`;
+      shareText += `Step ${route.step}. ${route.goto}    Arrive at : ${times[i]} \n (${route.distance}) (${route.duration_minute} mins) \n`;
+      shareText += `Detail: ${route["website link"]}\n\n`;
       shareText += `# ${name}\n`;
-      shareText += `ติดต่อ: ${phone}\n`;
-      shareText += `ตำแหน่ง: ${route.maps}\n\n`;
+      shareText += `Contact: ${phone}\n`;
+      shareText += `Location: ${route.maps}\n\n`;
+      shareText += `----------------------------\n\n`;
     });
-    
+
+    shareText += `Route Google Map: ${routeResponse.mapsUrl}\n\n`;
+
     // Encode and create LINE share URL
     const encodedText = encodeURIComponent(shareText);
     const lineShareUrl = `https://line.me/R/msg/text/?${encodedText}`;
-    
+
     // Open LINE sharing in new window
-    window.open(lineShareUrl, '_blank');
-    setShareStatus('กำลังเปิด LINE เพื่อแชร์ข้อมูลเส้นทาง');
-    
+    window.open(lineShareUrl, "_blank");
+    setShareStatus("LINE is now open to share route information.");
+
     // Reset status after 3 seconds
     setTimeout(() => {
-      setShareStatus('');
+      setShareStatus("");
     }, 3000);
   };
+  
+  
+
+    const travelTimeFromHomeToFirstWarehouse = getDurationMinutes(routeResponse.data[0]);// เวลาที่ควรออกจากบ้าน (startTime ที่ถึงโกดังแรก - เวลาเดินทางไปโกดังแรก)
+    const shouldgotime = timeToMinutes(startTime) - travelTimeFromHomeToFirstWarehouse;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 h-[500px] md:h-[600px] overflow-y-auto">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Route Map</h2>
 
       <div>
         <div className="mb-6">
           <h3 className="text-xl font-bold mb-2">Property Visit Plan</h3>
           <p className="text-gray-600">
-            Start Time : <span className="font-medium">{startTime}</span>
+            Should Start at : <span className="font-medium">{minutesToTime(shouldgotime)}</span>
           </p>
         </div>
 
@@ -152,6 +163,7 @@ const RouteResults: React.FC<RouteResultsProps> = ({
                   <span className="font-semibold text-lg">
                     {route.step}. {route.goto}
                   </span>
+                  <span className="text-gray-600 text-[11px] pl-[150px] mt-[5px]">arrive at : </span>
                   <span className="text-gray-600">{times[index]}</span>
                 </div>
                 <a
@@ -160,7 +172,7 @@ const RouteResults: React.FC<RouteResultsProps> = ({
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline text-sm block mb-2"
                 >
-                  รายละเอียดอสังหาริมทรัพย์ &#8599;
+                  Property Details &#8599;
                 </a>
               </div>
 
@@ -177,7 +189,7 @@ const RouteResults: React.FC<RouteResultsProps> = ({
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline text-sm"
                 >
-                  ดูตำแหน่งที่ตั้ง
+                  Location
                 </a>
               </div>
 
@@ -185,7 +197,11 @@ const RouteResults: React.FC<RouteResultsProps> = ({
               <div className="mt-3 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <Clock size={14} />
-                  <span>{route.duration_minute !== undefined ? `${route.duration_minute} min` : route.duration_text} </span>
+                  <span>
+                    {route.duration_minute !== undefined
+                      ? `${route.duration_minute} min`
+                      : route.duration_text}{" "}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <svg
@@ -217,18 +233,18 @@ const RouteResults: React.FC<RouteResultsProps> = ({
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 w-full"
           >
             <ExternalLink size={18} />
-            เปิดใน Google Maps
+            Open Google Maps
           </a>
-          
+
           {/* LINE Share Button */}
           <button
             onClick={shareToLine}
             className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2 w-full"
           >
             <Share2 size={18} />
-            แชร์ไปยัง LINE
+            Share to LINE
           </button>
-          
+
           {shareStatus && (
             <div className="text-center text-green-600 text-sm mt-1 animate-pulse">
               {shareStatus}

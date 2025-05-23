@@ -49,29 +49,26 @@ export function propertiesToRouteOptions(
 ): RouteOption[] {
   return properties.map((prop) => ({
     value: prop.propertyId,
-    label: `${prop.propertyId} - ${prop.subDistrict}, ${prop.district} , ${prop.buildingSize} sqm , ${prop.coordinates.lat}  , ${prop.coordinates.lng}`,
+    label: `${prop.propertyId} - ${prop.subDistrict}, ${prop.district} , ${prop.buildingSize} sqm `,
     coordinates: prop.coordinates,
   }));
 }
 
 export async function planRoute(data: {
   user_latitude: number;
-  user_longtitude: number; 
-  propertyid_list: string; 
-  user_timeselect: number; 
+  user_longtitude: number; // ใช้ตามชื่อจริงใน data
+  propertyid_list: string; // ตัว i ตัวเล็ก
+  user_timeselect: number; // เหมือนเดิม
 }) {
   console.log("Input data:", data);
 
-  // Use the local API endpoint to ensure the custom location is used
-  const url = "/api/route-planning";
-  
-  // For webhook testing, you can switch to this URL
-  // const url = "https://4d08-2001-fb1-89-7d24-6d7e-38ce-271e-4fb9.ngrok-free.app/webhook/googlemap-route-calculator";
+  const url =
+    "https://d217-2001-fb1-8b-7ff4-14a2-f3c4-192e-73c5.ngrok-free.app/webhook/googlemap-route-calculator";
 
   const payload = {
     user_latitude: data.user_latitude,
-    user_longtitude: data.user_longtitude,
-    propertyId_list: data.propertyid_list,
+    user_longtitude: data.user_longtitude, // ชื่อตรงกับ data
+    propertyId_list: data.propertyid_list, // แปลงตัว i ให้เป็นใหญ่ ถ้า webhook ต้องการแบบนี้
     user_timeselect: data.user_timeselect,
   };
 
